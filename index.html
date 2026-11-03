@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="logo.png">
+<title>Le Comptoir I2SA</title>
+<meta name="description" content="Le jeu de cartes brise-glace de la Junior Ingénierie i2SA : tire une carte, chacun répond à tour de rôle.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&display=swap">
+<style>
+/* Layout: one centred column, like a card table: filters on top, the deck in the middle, the draw button under the thumb. */
+:root {
+  --creme: #FFEFDB;
+  --creme-card: #FFF9F1;
+  --teal: #0F4348;
+  --teal-mid: #1C7683;
+  --orange: #FF7300;
+  --orange-ink: #A84D00;
+  --line: #F2D9BC;
+  --display: "Montserrat", "Trebuchet MS", Arial, sans-serif;
+  --body: "Nunito Sans", "Segoe UI", Arial, sans-serif;
+  color-scheme: light;
+}
+html, body { height: 100%; }
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body {
+  background: var(--creme);
+  color: var(--teal);
+  font-family: var(--body);
+  font-size: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.app {
+  max-width: 460px;
+  margin: 0 auto;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-block: 16px 24px;
+  box-sizing: border-box;
+}
+header { display: flex; align-items: center; gap: 12px; }
+header img { width: 52px; height: 52px; object-fit: cover; object-position: 50% 32%; border-radius: 50%; flex: none; }
+header h1 { font-family: var(--display); font-weight: 600; font-size: 22px; letter-spacing: 0.116em; text-transform: uppercase; margin: 0; line-height: 1.1; }
+header p { margin: 2px 0 0; font-size: 14px; color: var(--teal-mid); }
+
+.label { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--orange-ink); margin: 0 0 6px; }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none; display: inline-flex; align-items: center; gap: 6px;
+  font: 600 14px/1 var(--body); color: var(--teal);
+  background: transparent; border: 1.5px solid var(--line); border-radius: 999px;
+  padding: 8px 12px; cursor: pointer;
+}
+.chip .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c, var(--teal)); box-shadow: inset 0 0 0 1px rgba(15,67,72,.2); }
+.chip[aria-pressed="true"] { background: var(--teal); border-color: var(--teal); color: var(--creme); }
+.levels { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--creme-card); border: 1.5px solid var(--line); border-radius: 12px; padding: 3px; }
+.levels button { font: 600 14px/1 var(--body); color: var(--teal); background: none; border: 0; border-radius: 9px; padding: 9px 4px; cursor: pointer; }
+.levels button[aria-pressed="true"] { background: var(--orange); color: #0A2E31; }
+button:focus-visible, a:focus-visible, .card:focus-visible { outline: 3px solid var(--teal-mid); outline-offset: 3px; }
+
+.stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 0; }
+.card {
+  position: relative; width: min(100%, 340px, calc((100dvh - 330px) * 63 / 88)); min-width: 220px;
+  aspect-ratio: 63 / 88; perspective: 1400px; cursor: pointer; border: 0; padding: 0; background: none;
+}
+.card-inner { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .55s cubic-bezier(.2,.7,.2,1); }
+.card.is-front .card-inner { transform: rotateY(180deg); }
+.face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 22px; overflow: hidden; box-shadow: 0 14px 34px rgba(15,67,72,.20), 0 2px 6px rgba(15,67,72,.10); }
+.back { background: var(--creme); border: 3px solid var(--teal-mid); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; box-sizing: border-box; }
+.back img { width: 78%; height: auto; }
+.back span { font: 700 13px/1 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--orange-ink); }
+.front { transform: rotateY(180deg); background: var(--creme-card); display: flex; flex-direction: column; text-align: left; }
+.front .band { background: var(--cat, var(--teal)); color: var(--cat-ink, var(--creme)); padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.front .cat { font: 700 14px/1.2 var(--display); letter-spacing: .08em; text-transform: uppercase; }
+.front .lvl { font: 700 12px/1 var(--body); letter-spacing: .04em; white-space: nowrap; border: 1.5px solid currentColor; border-radius: 999px; padding: 5px 8px; }
+.front .q { flex: 1; display: flex; align-items: center; padding: 20px 22px; font: 600 clamp(19px, 6vw, 25px)/1.3 var(--display); color: var(--teal); text-wrap: balance; overflow-wrap: anywhere; }
+.front .foot { padding: 0 20px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--teal-mid); }
+.front .foot img { width: 30px; height: 30px; object-fit: cover; object-position: 50% 32%; border-radius: 50%; }
+
+.meta { min-height: 20px; font-size: 13px; color: var(--teal-mid); text-align: center; }
+.meta a { color: var(--teal); font-weight: 600; }
+.actions { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+.primary { font: 700 17px/1 var(--display); letter-spacing: .02em; color: #0A2E31; background: var(--orange); border: 0; border-radius: 14px; padding: 17px 18px; cursor: pointer; box-shadow: 0 4px 0 #C25700; }
+.primary:active { transform: translateY(2px); box-shadow: 0 2px 0 #C25700; }
+.ghost { font: 600 14px/1 var(--body); color: var(--teal); background: var(--creme-card); border: 1.5px solid var(--line); border-radius: 14px; padding: 0 16px; cursor: pointer; }
+.count { text-align: center; font-size: 13px; color: var(--teal-mid); margin: 0; font-variant-numeric: tabular-nums; }
+.error { background: var(--creme-card); border: 1.5px solid var(--orange); border-radius: 14px; padding: 14px 16px; font-size: 14px; line-height: 1.45; }
+@media (prefers-reduced-motion: reduce) { .card-inner { transition: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <img src="logo.png" alt="Logo Junior i2SA">
+    <div>
+      <h1>Le Comptoir</h1>
+      <p>Une carte, chacun répond à tour de rôle.</p>
+    </div>
+  </header>
+
+  <section aria-labelledby="fam-label">
+    <p class="label" id="fam-label">Famille</p>
+    <div class="chips" id="families" role="group" aria-labelledby="fam-label"></div>
+  </section>
+
+  <section aria-labelledby="lvl-label">
+    <p class="label" id="lvl-label">Niveau</p>
+    <div class="levels" id="levels" role="group" aria-labelledby="lvl-label">
+      <button type="button" id="lvl-all" data-level="" aria-pressed="true">Tous</button>
+      <button type="button" id="lvl-leger" data-level="leger" aria-pressed="false">Léger</button>
+      <button type="button" id="lvl-loin" data-level="plus_loin" aria-pressed="false">Plus loin</button>
+    </div>
+  </section>
+
+  <div class="stage">
+    <button type="button" class="card" id="card" aria-live="polite" aria-label="Tirer une carte">
+      <div class="card-inner">
+        <div class="face back">
+          <img src="logo.png" alt="">
+          <span>Touchez pour tirer</span>
+        </div>
+        <div class="face front" id="front">
+          <div class="band"><span class="cat" id="f-cat"></span><span class="lvl" id="f-lvl"></span></div>
+          <div class="q" id="f-text"></div>
+          <div class="foot"><span>Le Comptoir · Junior i2SA</span><img src="logo.png" alt=""></div>
+        </div>
+      </div>
+    </button>
+    <p class="meta" id="meta"></p>
+    <div class="error" id="error" hidden></div>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="primary" id="draw">Tirer une carte</button>
+    <button type="button" class="ghost" id="reset">Mélanger</button>
+  </div>
+  <p class="count" id="count"></p>
+</div>
+
+<script>
+(() => {
+  const CSV_URL = "cartes.csv";
+  const $ = id => document.getElementById(id);
+  const state = { cards: [], family: "", level: "", deck: [], current: null };
+
+  // Minimal RFC 4180 CSV parser (quotes, commas and line breaks inside fields)
+  function parseCSV(text) {
+    text = text.replace(/^﻿/, "");
+    const rows = []; let row = [], field = "", q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) {
+        if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else q = false; }
+        else field += c;
+      } else if (c === '"') q = true;
+      else if (c === ",") { row.push(field); field = ""; }
+      else if (c === "\n" || c === "\r") {
+        if (c === "\r" && text[i + 1] === "\n") i++;
+        row.push(field); field = ""; if (row.some(v => v !== "")) rows.push(row); row = [];
+      } else field += c;
+    }
+    row.push(field); if (row.some(v => v !== "")) rows.push(row);
+    const head = rows.shift().map(h => h.trim());
+    return rows.map(r => Object.fromEntries(head.map((h, i) => [h, (r[i] ?? "").trim()])));
+  }
+
+  const isTrue = v => /^(true|1|oui|yes)$/i.test(v || "");
+
+  function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+
+  function pool() {
+    return state.cards.filter(c =>
+      (!state.family || c.category_id === state.family) &&
+      (!state.level || c.level === state.level));
+  }
+
+  function rebuildDeck() { state.deck = shuffle(pool().slice()); updateCount(); }
+
+  function updateCount() {
+    const total = pool().length;
+    $("count").textContent = total ? `${state.deck.length} carte${state.deck.length > 1 ? "s" : ""} restante${state.deck.length > 1 ? "s" : ""} sur ${total}` : "Aucune carte pour ce filtre.";
+  }
+
+  function renderFamilies() {
+    const fams = [];
+    for (const c of state.cards) if (!fams.find(f => f.id === c.category_id))
+      fams.push({ id: c.category_id, name: c.category_name, color: c.card_color, order: +c.category_order || 99 });
+    fams.sort((a, b) => a.order - b.order);
+    const box = $("families"); box.textContent = "";
+    const mk = (id, name, color) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.id = "fam-" + (id || "all");
+      b.setAttribute("aria-pressed", String(state.family === id));
+      if (color) { const d = document.createElement("span"); d.className = "dot"; d.style.setProperty("--c", color); b.append(d); }
+      b.append(name);
+      b.onclick = () => { state.family = id; box.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", String(x === b))); rebuildDeck(); };
+      box.append(b);
+    };
+    mk("", "Toutes");
+    fams.forEach(f => mk(f.id, f.name, f.color));
+  }
+
+  function showCard(c) {
+    const front = $("front");
+    front.style.setProperty("--cat", c.card_color || "#0F4348");
+    front.style.setProperty("--cat-ink", c.card_text_color || "#FFEFDB");
+    $("f-cat").textContent = c.category_name;
+    $("f-lvl").textContent = c.level_label || (c.level === "leger" ? "Léger" : "Plus loin");
+    $("f-text").textContent = c.text;
+    const meta = $("meta"); meta.textContent = "";
+    if (c.source_url) {
+      const a = document.createElement("a");
+      a.href = c.source_url; a.target = "_blank"; a.rel = "noopener";
+      a.textContent = "Pour aller plus loin : " + (c.source.split(" – ")[0] || "la source");
+      meta.append(a);
+    } else if (c.source) meta.textContent = "Inspiration : " + c.source.split(" – ")[0];
+    $("card").classList.add("is-front");
+    $("card").setAttribute("aria-label", `${c.category_name}, ${$("f-lvl").textContent} : ${c.text}. Touchez pour la carte suivante.`);
+  }
+
+  function draw() {
+    if (!state.cards.length) return;
+    if (!state.deck.length) {
+      if (!pool().length) return;
+      rebuildDeck();
+    }
+    const next = state.deck.pop(); state.current = next;
+    const card = $("card");
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (card.classList.contains("is-front") && !reduce) {
+      card.classList.remove("is-front");
+      setTimeout(() => showCard(next), 320);
+    } else showCard(next);
+    $("draw").textContent = "Carte suivante";
+    updateCount();
+  }
+
+  function reset() {
+    $("card").classList.remove("is-front");
+    $("meta").textContent = "";
+    $("draw").textContent = "Tirer une carte";
+    $("card").setAttribute("aria-label", "Tirer une carte");
+    rebuildDeck();
+  }
+
+  $("card").onclick = draw;
+  $("draw").onclick = draw;
+  $("reset").onclick = reset;
+  document.querySelectorAll("#levels button").forEach(b => b.onclick = () => {
+    state.level = b.dataset.level;
+    document.querySelectorAll("#levels button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    rebuildDeck();
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === " " && e.target === document.body) { e.preventDefault(); draw(); }
+  });
+
+  fetch(CSV_URL, { cache: "no-store" })
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+    .then(t => {
+      state.cards = parseCSV(t).filter(c => isTrue(c.active) && c.text);
+      renderFamilies(); rebuildDeck();
+    })
+    .catch(() => {
+      const e = $("error"); e.hidden = false;
+      e.textContent = "Le paquet de cartes (cartes.csv) n’a pas pu être chargé. Vérifiez qu’il est bien à côté de cette page et ouvrez-la depuis son adresse web, pas en double-cliquant sur le fichier.";
+      $("count").textContent = "";
+    });
+})();
+</script>
+</body>
+</html>
